@@ -8,7 +8,7 @@ const steps: { actor: "code" | "ai" | "user"; title: string; text: string }[] = 
   { actor: "code", title: "Open the file", text: "Detects UTF-8 or GBK, the separator, rows and columns." },
   { actor: "code", title: "Pick columns", text: "Rules decide the clear cases; the AI judges only the unclear ones." },
   { actor: "user", title: "Approve the plan", text: "One click before the expensive step. Columns can be switched on or off." },
-  { actor: "ai", title: "Translate", text: "Each unique string once, ~40 at a time, every one tagged with an ID." },
+  { actor: "ai", title: "Translate", text: "Each unique string once, ~20 at a time, every one tagged with an ID." },
   { actor: "code", title: "Check", text: "Placeholders, tags, empty answers, leftover Chinese, runaway length." },
   { actor: "ai", title: "Repair", text: "Only the failed strings go back, with the problem explained." },
   { actor: "code", title: "Build the file", text: "Originals kept, a column per language beside each, a status column." },
@@ -20,11 +20,45 @@ export default function HowItWorks() {
       <h1>How the translation agent works</h1>
       <p className="lede">
         Upload a CSV with Chinese text, name the languages you want, and get the same file back with a translated column for each language. This page
-        explains how the work is split up, the decisions behind it, and what I'd improve next.
+        explains how I approached it, how the work is split up, the decisions behind it, what testing found, and what I'd improve next.
       </p>
       <p className="muted">
         <Link href="/">Try the agent</Link>. The sample file is a 100-row game item table, built to include the cases that trip translation up.
       </p>
+
+      <h2>Product management approach</h2>
+      <p>I treated this like any product problem, compressed into the time box. Each step below links to where it shows up on this page.</p>
+      <ol>
+        <li>
+          <b>Research to define the problem.</b> CTW runs game platforms, so I assumed the CSV is game content: item names, descriptions and
+          character text, full of placeholders like {"{0}"} and color tags. The user is someone localizing a string table. The real problem is not
+          "translate text" but "translate only what players see, without breaking the data the game depends on."
+        </li>
+        <li>
+          <b>Map the journey.</b> Upload and name languages, review a plan, watch progress, get the file, ask for changes. See{" "}
+          <a href="#journey">Interaction design</a>.
+        </li>
+        <li>
+          <b>Identify metrics.</b> Row integrity, placeholder safety, column-picking accuracy, flagged rate and human edit rate. See{" "}
+          <a href="#metrics">How I'd know it works</a>.
+        </li>
+        <li>
+          <b>Identify areas for improvement.</b> Where the journey can fail: translating an ID column, breaking a placeholder, misaligned rows,
+          garbled encoding, and failures that go unnoticed. Each one got a safeguard in the workflow below.
+        </li>
+        <li>
+          <b>Design solutions and choose by implementation trade-offs.</b> A fixed workflow over an autonomous agent, translating each unique string
+          once, batching, one approval step, two models. See <a href="#decisions">Key decisions</a>.
+        </li>
+        <li>
+          <b>Execute.</b> Built in Next.js and deployed on Vercel with AI-assisted coding, tested end to end with a stand-in AI before going live.
+        </li>
+        <li>
+          <b>Iterate.</b> The first live runs failed: Claude Sonnet 5.5 rejects the "forced tool use" request I first used for structured answers.
+          I switched to structured outputs with a plain-JSON fallback. The next run passed every check, and reading the output surfaced four
+          quality issues. See <a href="#findings">Findings and Areas for Improvement</a>.
+        </li>
+      </ol>
 
       <h2>The design in one sentence</h2>
       <p>
@@ -77,9 +111,9 @@ export default function HowItWorks() {
             </tr>
             <tr>
               <td>Translate</td>
-              <td>Per-column dedup; batches of ≤40 items / 3.5k chars; structured outputs (JSON schema) keyed by ID; 4 in parallel; retries with backoff.</td>
+              <td>Per-column dedup; batches of ≤20 items / 1.8k chars; structured outputs (JSON schema) keyed by ID; 6 in parallel; retries with backoff.</td>
               <td>Translations landing on the wrong row: impossible, because answers are matched by ID, not position.</td>
-              <td>Sends each different piece of text once, about 40 at a time, as a numbered answer sheet.</td>
+              <td>Sends each different piece of text once, about 20 at a time, as a numbered answer sheet.</td>
             </tr>
             <tr>
               <td>Check</td>
@@ -105,7 +139,7 @@ export default function HowItWorks() {
         </table>
       </div>
 
-      <h2>Key decisions</h2>
+      <h2 id="decisions">Key decisions</h2>
       <p>The trade-offs that shaped the product, and when I'd revisit each one.</p>
 
       <div className="decision">
@@ -129,10 +163,10 @@ export default function HowItWorks() {
         </div>
       </div>
       <div className="decision">
-        <h3>Batches of about 40</h3>
+        <h3>Batches of about 20</h3>
         <div>
           <p>
-            One string per call is slow and loses context; the whole file in one call risks a mismatched or cut-off answer. About 40 keeps context and
+            One string per call is slow and loses context; the whole file in one call risks a mismatched or cut-off answer. About 20 keeps context and
             stays reliable.
           </p>
           <p className="tech">Revisit when: measuring quality vs. batch size on a real evaluation set.</p>
@@ -179,7 +213,7 @@ export default function HowItWorks() {
         </div>
       </div>
 
-      <h2>Interaction design</h2>
+      <h2 id="journey">Interaction design</h2>
       <p>The conversation moves through four states. Chat earns its place after the first result, when you can change your mind in plain words.</p>
       <ol>
         <li>
@@ -250,7 +284,7 @@ export default function HowItWorks() {
         </table>
       </div>
 
-      <h2>How I'd know it works</h2>
+      <h2 id="metrics">How I'd know it works</h2>
       <ul>
         <li>
           <b>Row integrity</b>: rows in equals rows out, every time (target: 100%).
@@ -272,20 +306,64 @@ export default function HowItWorks() {
         </li>
       </ul>
 
-      <h2>What I'd improve next</h2>
-      <p>In priority order; the first three are a first week's work.</p>
+      <h2 id="findings">Findings and Areas for Improvement</h2>
+      <p>
+        I ran the 100-row sample in English and German on the live site. Every automatic check passed: all 100 rows back in order, all 784
+        translated cells with placeholders, tags and line breaks intact, no Chinese left over, the six data columns unchanged, and empty cells still
+        empty. Reading the output myself surfaced four issues the checks can't catch.
+      </p>
+      <h3>What testing found</h3>
+      <ul>
+        <li>
+          <b>Gender mismatches in character text.</b> Lina (莉娜) is a female name and her German name is feminine ("Lichtritterin"), but her
+          description says "with his life" in English and uses the masculine "Der jüngste Ritterhauptmann" in German. The same happens with
+          "Schattenassassine" (feminine) described as "Ein … Assassine" (masculine).
+          <span className="tech">
+            Cause: names and descriptions are translated in separate batches, so a description never sees its row's name. Fix: send each row's
+            name along with its other text.
+          </span>
+        </li>
+        <li>
+          <b>Inconsistent terms across batches.</b> 星辰 became "Star" in some names ("Star Dagger") and "Starlight" in others ("Starlight Ring");
+          龙鳞 became both "Dragon Scale" and "Dragonscale".
+          <span className="tech">Cause: each batch chooses its own wording for recurring terms. Fix: a shared glossary (item 3 below).</span>
+        </li>
+        <li>
+          <b>A leftover Chinese name separator in German.</b> "Schattenassassine·Ye" keeps the Chinese "·", while English correctly uses "Shadow
+          Assassin: Ye".
+          <span className="tech">Cause: the leftover-punctuation check doesn't include "·". Fix: add it, so the repair step catches it.</span>
+        </li>
+        <li>
+          <b>Awkward German word order.</b> "Maximale Lebenspunkte um {"{0}"} erhöht für {"{1}"} Runden" would normally read "…für {"{1}"} Runden um{" "}
+          {"{0}"} erhöht".
+          <span className="tech">Cause: correct but unnatural phrasing passes every rule-based check. Fix: an AI reviewer pass (item 4 below).</span>
+        </li>
+      </ul>
+
+      <h3>What I'd improve next</h3>
+      <p>In priority order; the first four are a first week's work.</p>
       <ol className="priority">
         <li>
           <b>Protect the public link.</b> Today anyone with the URL can spend API credits.
           <span className="tech">Access code, per-IP rate limiting, spending cap.</span>
         </li>
         <li>
-          <b>Glossary and translation memory.</b> Lock character names and key terms; never pay twice for a string translated before.
+          <b>Translate with row context.</b> Fixes the gender mismatches above.
+          <span className="tech">Include each row's name (and other short fields) as context when translating its description.</span>
+        </li>
+        <li>
+          <b>Glossary and translation memory.</b> Lock character names and key terms; never pay twice for a string translated before. Fixes the
+          inconsistent terms above.
           <span className="tech">Glossary injected into prompts; exact and fuzzy match against past translations.</span>
         </li>
         <li>
-          <b>Measure quality, not just safety.</b> Today's checks prove nothing is broken, not that a translation is good.
+          <b>Measure quality, not just safety.</b> Today's checks prove nothing is broken, not that a translation is good. Catches issues like the
+          German word order above.
           <span className="tech">Evaluation set of approved translations; AI reviewer scoring; track human edit rate.</span>
+        </li>
+        <li>
+          <b>Wider automatic checks.</b> Catch leftover Chinese separators such as "·".
+          <span className="tech">Add CJK separators to the punctuation check so the repair step fixes them.</span>
         </li>
         <li>
           <b>Fit the screen.</b> German runs about 30% longer than English; buttons and item names have limits.
@@ -309,8 +387,8 @@ export default function HowItWorks() {
         </li>
       </ol>
       <div className="callout">
-        The biggest current weakness: the checks prove a translation is <i>safe</i>, not that it's <i>good</i>. That's why measuring quality ranks third,
-        behind two fixes that are quick and low-risk.
+        The biggest current weakness: the checks prove a translation is <i>safe</i>, not that it's <i>good</i>. That's why measuring quality ranks fourth,
+        behind three fixes that are quick and low-risk.
       </div>
     </main>
   );
