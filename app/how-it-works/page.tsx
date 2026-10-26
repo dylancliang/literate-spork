@@ -45,7 +45,7 @@ export default function HowItWorks() {
       </p>
 
       <h2>Who does what</h2>
-      <p>Each step in plain language, with the technical version alongside.</p>
+      <p>Each step in technical terms, with a plain-language version alongside.</p>
       <div className="table-scroll">
         <table className="doc-table">
           <thead>
@@ -53,53 +53,53 @@ export default function HowItWorks() {
               <th>Step</th>
               <th>What it does</th>
               <th>What could go wrong, and the safeguard</th>
-              <th>Technical version</th>
+              <th>In plain language</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <td>Understand the request</td>
-              <td>Turns "English and German", "en, de" or "英语和德语" into standard language codes.</td>
+              <td>Alias match → BCP-47 codes; LLM fallback (fast model) for anything unmatched.</td>
               <td>An unknown language: the AI interprets it; if it still finds none, the agent asks instead of guessing.</td>
-              <td className="tech">Alias match → BCP-47 codes; LLM fallback (fast model) for anything unmatched.</td>
+              <td>Turns "English and German", "en, de" or "英语和德语" into standard language codes.</td>
             </tr>
             <tr>
               <td>Open the file</td>
-              <td>Reads files saved by Chinese Excel (GBK) as well as UTF-8, and never turns "007" into 7 or reformats dates.</td>
+              <td>UTF-8 strict decode, gb18030 fallback; delimiter sniffing; every cell kept as a string.</td>
               <td>Broken file: a clear error message.</td>
-              <td className="tech">UTF-8 strict decode, gb18030 fallback; delimiter sniffing; every cell kept as a string.</td>
+              <td>Reads files saved by Chinese Excel (GBK) as well as UTF-8, and never turns "007" into 7 or reformats dates.</td>
             </tr>
             <tr>
               <td>Pick columns</td>
-              <td>Translates text players see (names, descriptions) and skips data code depends on (IDs, prices, file paths).</td>
+              <td>Heuristic on Chinese-cell share, code-likeness and header name; LLM verdict only for the grey zone.</td>
               <td>A wrong pick: shown in the plan with its reason, and you can switch it before anything runs.</td>
-              <td className="tech">Heuristic on Chinese-cell share, code-likeness and header name; LLM verdict only for the grey zone.</td>
+              <td>Translates text players see (names, descriptions) and skips data code depends on (IDs, prices, file paths).</td>
             </tr>
             <tr>
               <td>Translate</td>
-              <td>Sends each different piece of text once, about 40 at a time, as a numbered answer sheet.</td>
+              <td>Per-column dedup; batches of ≤40 items / 3.5k chars; forced tool call for structured JSON; 4 in parallel; retries with backoff.</td>
               <td>Translations landing on the wrong row: impossible, because answers are matched by ID, not position.</td>
-              <td className="tech">Per-column dedup; batches of ≤40 items / 3.5k chars; forced tool call for structured JSON; 4 in parallel; retries with backoff.</td>
+              <td>Sends each different piece of text once, about 40 at a time, as a numbered answer sheet.</td>
             </tr>
             <tr>
               <td>Check</td>
-              <td>Proofreads automatically: every string answered, nothing empty, {"{0}"} and {"<color>"} tags intact, no Chinese left behind.</td>
+              <td>Deterministic validators: token multiset equality, Han-script and CJK punctuation detection, length ratio.</td>
               <td>Anything that fails goes to repair.</td>
-              <td className="tech">Deterministic validators: token multiset equality, Han-script and CJK punctuation detection, length ratio.</td>
+              <td>Proofreads automatically: every string answered, nothing empty, {"{0}"} and {"<color>"} tags intact, no Chinese left behind.</td>
             </tr>
             <tr>
               <td>Repair</td>
-              <td>Re-translates only the failed strings, telling the AI exactly what was wrong.</td>
+              <td>Targeted retry with error feedback; a fix is accepted only if it passes validation.</td>
               <td>Still failing: kept and marked "needs review" in the file, never hidden.</td>
-              <td className="tech">Targeted retry with error feedback; a fix is accepted only if it passes validation.</td>
+              <td>Re-translates only the failed strings, telling the AI exactly what was wrong.</td>
             </tr>
             <tr>
               <td>Build the file</td>
-              <td>Original columns kept, each translated column followed by one column per language, plus a status column.</td>
-              <td>Garbled characters in Excel: prevented by saving with a marker Excel recognizes.</td>
-              <td className="tech">
+              <td>
                 <code>名称 → 名称_en, 名称_de</code>; <code>translation_status</code>; UTF-8 with BOM.
               </td>
+              <td>Garbled characters in Excel: prevented by saving with a marker Excel recognizes.</td>
+              <td>Original columns kept, each translated column followed by one column per language, plus a status column.</td>
             </tr>
           </tbody>
         </table>
