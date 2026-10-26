@@ -77,7 +77,7 @@ export default function HowItWorks() {
             </tr>
             <tr>
               <td>Translate</td>
-              <td>Per-column dedup; batches of ≤40 items / 3.5k chars; forced tool call for structured JSON; 4 in parallel; retries with backoff.</td>
+              <td>Per-column dedup; batches of ≤40 items / 3.5k chars; structured outputs (JSON schema) keyed by ID; 4 in parallel; retries with backoff.</td>
               <td>Translations landing on the wrong row: impossible, because answers are matched by ID, not position.</td>
               <td>Sends each different piece of text once, about 40 at a time, as a numbered answer sheet.</td>
             </tr>
@@ -236,9 +236,9 @@ export default function HowItWorks() {
             </tr>
             <tr>
               <td>Structured output</td>
-              <td>Forced tool calls</td>
+              <td>Structured outputs (JSON schema)</td>
               <td>The AI must answer in a fixed format, so there's no free text to parse.</td>
-              <td className="tech">Parsing JSON out of prose: fragile.</td>
+              <td className="tech">Forcing a tool call: not supported by Sonnet 5.5. Parsing JSON out of prose: fragile.</td>
             </tr>
             <tr>
               <td>CSV</td>
