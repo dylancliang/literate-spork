@@ -162,6 +162,8 @@ a { color: var(--ai); }
 .progress { display: grid; gap: 8px; }
 .bar { height: 6px; border-radius: 99px; background: var(--code-tint); overflow: hidden; }
 .bar > span { display: block; height: 100%; background: var(--ai); border-radius: 99px; transition: width 0.35s ease; }
+.bar.paused > span { background: var(--faint); }
+.run-controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
 .progress .label { font-size: 14px; display: flex; justify-content: space-between; gap: 12px; }
 .progress .label span:last-child { color: var(--muted); }
 

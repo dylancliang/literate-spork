@@ -215,9 +215,12 @@ export default function HowItWorks() {
         </div>
       </div>
       <div className="decision">
-        <h3>Ask once, before the expensive part</h3>
+        <h3>Ask before anything expensive</h3>
         <div>
-          <p>The plan costs one click but prevents translating an ID column and breaking the game data. It's the only point where the agent waits for you.</p>
+          <p>
+            The plan costs one click but prevents translating an ID column and breaking the game data. Follow-ups that spend AI calls get the same
+            treatment: the agent says what it understood and how many calls it will take, then waits. Answers to questions run without asking.
+          </p>
         </div>
       </div>
       <div className="decision">
@@ -258,11 +261,13 @@ export default function HowItWorks() {
           <b>Plan</b>: file facts, each column with its reason and who decided (rule, AI or you), languages, and the number of AI calls.
         </li>
         <li>
-          <b>Progress</b>: a live bar while the trace panel fills in step by step.
+          <b>Progress</b>: a live bar while the trace panel fills in step by step, with Pause, Resume and Cancel. Pause lets batches already sent
+          finish; Cancel stops everything and leaves the file as it was.
         </li>
         <li>
           <b>Result</b>: preview of source beside translations, rows needing review highlighted, and a download button. Follow-ups like "add Japanese",
-          "make the German formal" or "redo row 12" re-run only what's needed; "why wasn't icon translated?" gets an answer without re-running.
+          "make the German formal" or "redo row 12" show what the agent understood and the number of AI calls, then re-run only what's needed once
+          you choose Go ahead; "why wasn't icon translated?" gets an answer without re-running.
         </li>
       </ol>
       <h3>When things go wrong</h3>
@@ -345,7 +350,7 @@ export default function HowItWorks() {
       <p>
         I ran the 100-row sample in English and German on the live site. Every automatic check passed: all 100 rows back in order, all 784
         translated cells with placeholders, tags and line breaks intact, no Chinese left over, the six data columns unchanged, and empty cells still
-        empty. Reading the output myself surfaced four issues the checks can't catch.
+        empty. Reading the output and using the app surfaced six issues the checks can't catch; the last two are already fixed.
       </p>
       <h3>What testing found</h3>
       <ul>
@@ -372,6 +377,18 @@ export default function HowItWorks() {
           <b>Awkward German word order.</b> "Maximale Lebenspunkte um {"{0}"} erhöht für {"{1}"} Runden" would normally read "…für {"{1}"} Runden um{" "}
           {"{0}"} erhöht".
           <span className="tech">Cause: correct but unnatural phrasing passes every rule-based check. Fix: an AI reviewer pass (item 4 below).</span>
+        </li>
+        <li>
+          <b>A one-word follow-up re-ran everything without asking.</b> Typing "polish" to add Polish was read as "polish the translations", and
+          the agent re-translated all four languages straight away.
+          <span className="tech">
+            Cause: an ambiguous word, and follow-ups that ran immediately. Fixed: follow-ups that spend AI calls now show what the agent understood and
+            the call count, and wait for Go ahead; a bare language name is read as the language; Polish is in the built-in list.
+          </span>
+        </li>
+        <li>
+          <b>Typing a language replaced the list.</b> Adding "Japanese" to an English and German plan dropped English and German.
+          <span className="tech">Fixed: a typed language now adds to the list; "only", "instead" or "just" still replace it.</span>
         </li>
       </ul>
 

@@ -8,8 +8,11 @@ import {
   buildOutput,
   chooseColumns,
   estimateCalls,
-  handleFollowup,
   loadFile,
+  planFollowup,
+  runFollowup,
+  snapshotJob,
+  restoreJob,
   translateLanguages,
   understandLanguages,
   type Ctx,
@@ -17,6 +20,7 @@ import {
 import { matchLanguages } from "../lib/languages";
 import { checkTranslation } from "../lib/validate";
 import { parseCsv } from "../lib/csv";
+import { CancelledError, RunControl } from "../lib/control";
 import type { AgentApi, TraceEvent } from "../lib/types";
 
 let failures = 0;
@@ -50,7 +54,8 @@ const mockApi: AgentApi = {
   },
   async routeFollowup({ message }) {
     calls.followup++;
-    if (/japanese/i.test(message)) return { action: "add_languages", languages: [{ code: "ja", name: "Japanese" }], instruction: "", rows: [], reply: "Adding Japanese." };
+    if (/^add japanese$/i.test(message)) return { action: "add_languages", languages: [{ code: "ja", name: "Japanese" }], instruction: "", rows: [], reply: "" };
+    if (/japanese/i.test(message) && !/^add japanese$/i.test(message)) return { action: "add_languages", languages: [{ code: "ja", name: "Japanese" }], instruction: "", rows: [], reply: "Adding Japanese." };
     return { action: "retranslate", languages: [{ code: "de", name: "German" }], instruction: "use formal Sie", rows: [3], reply: "Redoing row 3 in German." };
   },
 };
@@ -120,13 +125,68 @@ async function main() {
   expect(vipRow >= 0 && out.rows[vipRow].at(-1)!.startsWith("needs review"), "unfixable string is flagged, not hidden");
   expect(out.flagged.length === 1, `exactly one row flagged (got ${out.flagged.length})`);
 
-  console.log("\n— Follow-ups —");
+  console.log("\n— Follow-ups (plan, approve, run) —");
   const before = calls.translate;
-  const r1 = await handleFollowup(ctx, job, "please also add Japanese");
-  const out2 = buildOutput(null, job);
-  expect(r1.changed && out2.headers.includes("名称_ja"), "“add Japanese” adds 名称_ja");
-  const r2 = await handleFollowup(ctx, job, "row 3 German should be formal");
-  expect(r2.changed && calls.translate > before, "row-level retranslate runs");
+  const p1 = await planFollowup(ctx, job, "please also add Japanese");
+  expect(p1.kind === "run" && calls.translate === before, "planning a follow-up translates nothing until approved");
+  if (p1.kind === "run") {
+    console.log(`   plan: ${p1.summary} (${p1.calls} AI calls)`);
+    await runFollowup(ctx, job, p1);
+  }
+  expect(buildOutput(null, job).headers.includes("名称_ja"), "approved “add Japanese” adds 名称_ja");
+  const p2 = await planFollowup(ctx, job, "row 3 German should be formal");
+  expect(p2.kind === "run" && p2.calls === 1, `row-level retranslate is planned as a small job (${p2.kind === "run" ? p2.calls : "?"} calls)`);
+  if (p2.kind === "run") await runFollowup(ctx, job, p2);
+  expect(calls.translate > before, "row-level retranslate runs after approval");
+
+  console.log("\n— Pause, resume, cancel —");
+  {
+    const control = new RunControl();
+    const fresh = buildJob(ds, cols, [{ code: "fr", name: "French" }]);
+    let progressAtPause = -1;
+    const run = translateLanguages(ctx, fresh, fresh.languages, {
+      control,
+      onProgress: (d) => {
+        if (d === 1 && progressAtPause < 0) {
+          control.pause();
+          progressAtPause = d;
+          setTimeout(() => control.resume(), 200);
+        }
+      },
+    });
+    await run;
+    expect(Object.keys(fresh.translations.fr).length === fresh.units.length, "paused run resumes and finishes every string");
+  }
+  {
+    const control = new RunControl();
+    const fresh = buildJob(ds, cols, [{ code: "es", name: "Spanish" }]);
+    const startCalls = calls.translate;
+    let err: unknown;
+    try {
+      await translateLanguages(ctx, fresh, fresh.languages, { control, onProgress: (d) => d === 1 && control.cancel() });
+    } catch (e) {
+      err = e;
+    }
+    expect(err instanceof CancelledError, "cancel stops the run with a CancelledError");
+    expect(calls.translate - startCalls < 8, `cancel stops new batches (${calls.translate - startCalls} of 8 sent)`);
+  }
+  {
+    const snap = snapshotJob(job);
+    const langsBefore = job.languages.length;
+    const control = new RunControl();
+    const p3 = await planFollowup(ctx, job, "add Japanese");
+    // Japanese is already there, so try a fresh language through the same path:
+    const plan = { kind: "run" as const, action: { action: "add_languages" as const, languages: [{ code: "ko", name: "Korean" }], instruction: "", rows: [], reply: "" }, langs: [{ code: "ko", name: "Korean" }], summary: "Add Korean", calls: 8, reply: "" };
+    let cancelled = false;
+    try {
+      await runFollowup(ctx, job, plan, (d) => d === 1 && control.cancel(), control);
+    } catch (e) {
+      cancelled = e instanceof CancelledError;
+      restoreJob(job, snap);
+    }
+    expect(p3.kind === "answer", "asking for a language already in the file needs no AI calls");
+    expect(cancelled && job.languages.length === langsBefore && !job.translations.ko, "cancelled follow-up leaves the file exactly as it was");
+  }
 
   console.log("\n— Trace —");
   for (const e of trace) console.log(`   [${e.actor.padEnd(4)}] ${e.status === "ok" ? " " : e.status === "warn" ? "!" : "x"} ${e.title}`);

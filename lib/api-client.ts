@@ -1,10 +1,11 @@
 import type { AgentApi } from "./types";
 
-async function post<T>(path: string, body: unknown): Promise<T> {
+async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
   const res = await fetch(path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    signal,
   });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -24,8 +25,8 @@ export const httpApi: AgentApi = {
   async classifyColumns(columns) {
     return (await post<{ verdicts: { name: string; translate: boolean; reason: string }[] }>("/api/columns", { columns })).verdicts;
   },
-  async translate(req) {
-    return (await post<{ translations: { id: string; text: string }[] }>("/api/translate", req)).translations;
+  async translate({ signal, ...req }) {
+    return (await post<{ translations: { id: string; text: string }[] }>("/api/translate", req, signal)).translations;
   },
   async routeFollowup(req) {
     return post("/api/followup", req);

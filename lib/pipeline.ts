@@ -5,7 +5,8 @@ import { parseCsv, toCsv } from "./csv";
 import { ruleDecisions } from "./columns";
 import { matchLanguages } from "./languages";
 import { checkTranslation } from "./validate";
-import type { AgentApi, ColumnDecision, Dataset, Lang, TraceEvent, TranslateItem, Unit } from "./types";
+import { CancelledError, RunControl } from "./control";
+import type { AgentApi, ColumnDecision, Dataset, FollowupAction, Lang, TraceEvent, TranslateItem, Unit } from "./types";
 
 export const MAX_ROWS = 2000;
 export const BATCH_ITEMS = 20;
@@ -189,7 +190,7 @@ export async function translateLanguages(
   ctx: Ctx,
   job: Job,
   langs: Lang[],
-  opts: { instruction?: string; onlyUnits?: Set<string>; onProgress?: (done: number, total: number) => void } = {}
+  opts: { instruction?: string; onlyUnits?: Set<string>; onProgress?: (done: number, total: number) => void; control?: RunControl } = {}
 ): Promise<void> {
   const units = opts.onlyUnits ? job.units.filter((u) => opts.onlyUnits!.has(u.id)) : job.units;
   const batches = batchUnits(units);
@@ -207,12 +208,21 @@ export async function translateLanguages(
   const total = tasks.length;
   opts.onProgress?.(0, total);
 
-  await runPool(tasks, CONCURRENCY, async ({ lang, batch, n }) => {
+  const control = opts.control;
+  await runPool(tasks, CONCURRENCY, control, async ({ lang, batch, n }) => {
     const t0 = now();
     try {
-      const out = await withRetry(() =>
-        ctx.api.translate({ lang, items: batch.map((u) => ({ id: u.id, column: u.column, text: u.text })), instruction: job.instructions[lang.code] })
+      const out = await withRetry(
+        () =>
+          ctx.api.translate({
+            lang,
+            items: batch.map((u) => ({ id: u.id, column: u.column, text: u.text })),
+            instruction: job.instructions[lang.code],
+            signal: control?.abort.signal,
+          }),
+        control
       );
+      if (control?.cancelled) return;
       const ids = new Set(batch.map((u) => u.id));
       let got = 0;
       for (const r of out) {
@@ -229,6 +239,7 @@ export async function translateLanguages(
         status: got === batch.length ? "ok" : "warn",
       });
     } catch (e) {
+      if (control?.cancelled) return;
       failed++;
       firstError ||= e instanceof Error ? e.message : String(e);
       ctx.trace({ step: "translate", actor: "ai", title: `Batch ${n}/${batches.length} → ${lang.name} failed`, detail: String(e), ms: now() - t0, status: "error" });
@@ -237,12 +248,14 @@ export async function translateLanguages(
     opts.onProgress?.(done, total);
   });
 
+  if (control?.cancelled) throw new CancelledError();
   // If nothing came back at all, it's a setup or service problem, not a translation problem: say so plainly.
   if (total > 0 && failed === total) throw new Error(firstError);
 
   for (const lang of langs) {
+    await control?.checkpoint();
     const failing = checkAll(ctx, job, lang, units, "check");
-    if (failing.length) await repair(ctx, job, lang, failing);
+    if (failing.length) await repair(ctx, job, lang, failing, control);
   }
 }
 
@@ -272,7 +285,7 @@ function checkAll(ctx: Ctx, job: Job, lang: Lang, units: Unit[], phase: "check" 
   return failing;
 }
 
-async function repair(ctx: Ctx, job: Job, lang: Lang, failing: Unit[]): Promise<void> {
+async function repair(ctx: Ctx, job: Job, lang: Lang, failing: Unit[], control?: RunControl): Promise<void> {
   const t0 = now();
   const items: TranslateItem[] = failing.map((u) => ({
     id: u.id,
@@ -282,7 +295,11 @@ async function repair(ctx: Ctx, job: Job, lang: Lang, failing: Unit[]): Promise<
   }));
   try {
     for (let i = 0; i < items.length; i += BATCH_ITEMS) {
-      const out = await withRetry(() => ctx.api.translate({ lang, items: items.slice(i, i + BATCH_ITEMS), instruction: job.instructions[lang.code] }));
+      await control?.checkpoint();
+      const out = await withRetry(
+        () => ctx.api.translate({ lang, items: items.slice(i, i + BATCH_ITEMS), instruction: job.instructions[lang.code], signal: control?.abort.signal }),
+        control
+      );
       for (const r of out) {
         // Only accept a repair if it actually passes the checks.
         const u = failing.find((f) => f.id === r.id);
@@ -290,6 +307,7 @@ async function repair(ctx: Ctx, job: Job, lang: Lang, failing: Unit[]): Promise<
       }
     }
   } catch (e) {
+    if (control?.cancelled) throw new CancelledError();
     ctx.trace({ step: "repair", actor: "ai", title: `Repair call for ${lang.name} failed`, detail: String(e), status: "error", ms: now() - t0 });
   }
   const still = checkAll(ctx, job, lang, failing, "recheck");
@@ -370,14 +388,17 @@ export function buildOutput(ctx: Ctx | null, job: Job): Output {
 
 // ---------- Follow-ups after the first result ----------
 
-export async function handleFollowup(
-  ctx: Ctx,
-  job: Job,
-  message: string,
-  onProgress?: (done: number, total: number) => void
-): Promise<{ reply: string; changed: boolean }> {
+export type FollowupPlan =
+  | { kind: "answer"; reply: string }
+  | { kind: "run"; action: FollowupAction; langs: Lang[]; only?: Set<string>; summary: string; calls: number; reply: string };
+
+/**
+ * Step 1 of a follow-up: work out what the user wants, without translating anything.
+ * Anything that would spend AI calls comes back as a plan the user approves first.
+ */
+export async function planFollowup(ctx: Ctx, job: Job, message: string): Promise<FollowupPlan> {
   const t0 = now();
-  let action;
+  let action: FollowupAction;
   try {
     action = await withRetry(() =>
       ctx.api.routeFollowup({
@@ -392,9 +413,9 @@ export async function handleFollowup(
     const langs = matchLanguages(message).filter((l) => !job.languages.some((x) => x.code === l.code));
     if (!langs.length) {
       ctx.trace({ step: "follow_up", actor: "ai", title: "Couldn't interpret the follow-up", detail: String(e), status: "error", ms: now() - t0 });
-      return { reply: "Sorry, I couldn't process that request just now. Please try again.", changed: false };
+      return { kind: "answer", reply: "Sorry, I couldn't process that request just now. Please try again." };
     }
-    action = { action: "add_languages" as const, languages: langs, instruction: "", rows: [], reply: "" };
+    action = { action: "add_languages", languages: langs, instruction: "", rows: [], reply: "" };
   }
 
   ctx.trace({
@@ -406,21 +427,29 @@ export async function handleFollowup(
     status: "ok",
   });
 
-  if (action.action === "answer") return { reply: action.reply, changed: false };
+  if (action.action === "answer") return { kind: "answer", reply: action.reply };
+
+  const names = (ls: Lang[]) => ls.map((l) => l.name).join(", ");
+  const instr = action.instruction ? `, with the instruction "${action.instruction}"` : "";
 
   if (action.action === "add_languages") {
     const fresh = action.languages.filter((l) => !job.languages.some((x) => x.code === l.code));
-    if (!fresh.length) return { reply: "Those languages are already in the file.", changed: false };
-    job.languages = [...job.languages, ...fresh];
-    await translateLanguages(ctx, job, fresh, { instruction: action.instruction || undefined, onProgress });
-    return { reply: action.reply || `Added ${fresh.map((l) => l.name).join(", ")}.`, changed: true };
+    if (!fresh.length) return { kind: "answer", reply: "Those languages are already in the file." };
+    return {
+      kind: "run",
+      action,
+      langs: fresh,
+      summary: `Add ${names(fresh)} for all ${job.ds.rows.length} rows${instr}`,
+      calls: batchUnits(job.units).length * fresh.length,
+      reply: action.reply,
+    };
   }
 
   // retranslate
   const langs = action.languages.length
     ? job.languages.filter((l) => action.languages.some((x) => x.code.toLowerCase() === l.code.toLowerCase()))
     : job.languages;
-  if (!langs.length) return { reply: "That language isn't in the file yet. Ask me to add it first.", changed: false };
+  if (!langs.length) return { kind: "answer", reply: "That language isn't in the file yet. Ask me to add it first." };
   let only: Set<string> | undefined;
   if (action.rows.length) {
     only = new Set();
@@ -432,10 +461,44 @@ export async function handleFollowup(
         if (id) only!.add(id);
       });
     }
-    if (!only.size) return { reply: "I couldn't find those rows. Row numbers start at 1 for the first data row.", changed: false };
+    if (!only.size) return { kind: "answer", reply: "I couldn't find those rows. Row numbers start at 1 for the first data row." };
   }
-  await translateLanguages(ctx, job, langs, { instruction: action.instruction || undefined, onlyUnits: only, onProgress });
-  return { reply: action.reply || "Done.", changed: true };
+  const units = only ? job.units.filter((u) => only!.has(u.id)) : job.units;
+  const scope = action.rows.length ? `row${action.rows.length > 1 ? "s" : ""} ${action.rows.join(", ")}` : `all ${job.ds.rows.length} rows`;
+  return {
+    kind: "run",
+    action,
+    langs,
+    only,
+    summary: `Re-translate ${names(langs)} for ${scope}${instr}`,
+    calls: batchUnits(units).length * langs.length,
+    reply: action.reply,
+  };
+}
+
+/** Step 2 of a follow-up, after the user approves: do the translation. */
+export async function runFollowup(
+  ctx: Ctx,
+  job: Job,
+  plan: Extract<FollowupPlan, { kind: "run" }>,
+  onProgress?: (done: number, total: number) => void,
+  control?: RunControl
+): Promise<void> {
+  const instruction = plan.action.instruction || undefined;
+  if (plan.action.action === "add_languages") {
+    job.languages = [...job.languages, ...plan.langs];
+    await translateLanguages(ctx, job, plan.langs, { instruction, onProgress, control });
+  } else {
+    await translateLanguages(ctx, job, plan.langs, { instruction, onlyUnits: plan.only, onProgress, control });
+  }
+}
+
+/** Copy of everything a follow-up can change, so a cancelled follow-up leaves the file exactly as it was. */
+export function snapshotJob(job: Job) {
+  return JSON.parse(JSON.stringify({ languages: job.languages, translations: job.translations, problems: job.problems, instructions: job.instructions }));
+}
+export function restoreJob(job: Job, snap: ReturnType<typeof snapshotJob>) {
+  Object.assign(job, snap);
 }
 
 function describeAction(a: { action: string; languages: Lang[]; instruction: string; rows: number[] }): string {
@@ -448,24 +511,26 @@ function describeAction(a: { action: string; languages: Lang[]; instruction: str
 
 // ---------- helpers ----------
 
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+async function withRetry<T>(fn: () => Promise<T>, control?: RunControl, attempts = 3): Promise<T> {
   let last: unknown;
   for (let i = 0; i < attempts; i++) {
     try {
       return await fn();
     } catch (e) {
       last = e;
-      if ((e as { retryable?: boolean }).retryable === false) break;
+      if ((e as { retryable?: boolean }).retryable === false || control?.cancelled) break;
       if (i < attempts - 1) await sleep(1000 * 2 ** i);
     }
   }
   throw last;
 }
 
-async function runPool<T>(items: T[], limit: number, worker: (item: T) => Promise<void>): Promise<void> {
+async function runPool<T>(items: T[], limit: number, control: RunControl | undefined, worker: (item: T) => Promise<void>): Promise<void> {
   let next = 0;
   const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
     while (next < items.length) {
+      if (control && !(await control.gate())) return;
+      if (next >= items.length) return;
       const i = next++;
       await worker(items[i]);
     }

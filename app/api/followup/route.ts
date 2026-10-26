@@ -31,7 +31,9 @@ export const POST = handler<Body, FollowupAction>(async ({ message, languages, c
       "Put the change in `instruction` (written as an instruction to a translator). Limit `languages` to the affected ones (empty = all). " +
       "Put 1-based data row numbers in `rows` if they named rows (empty = all rows).\n" +
       "- answer: a question or comment that needs no re-translation. Answer it in `reply` using the context (e.g. why a column was skipped).\n" +
-      "Always write `reply`: one or two friendly sentences for the user, in the language they wrote in.\n\n" +
+      "A message that is just a language name means add that language, even if the word has another meaning: 'polish' means Polish, 'german' means German. " +
+      "Treat a word as an instruction only when the sentence makes that clear (e.g. 'polish the German wording').\n" +
+      "Always write `reply`: one or two friendly sentences for the user, in the language they wrote in. Describe what you will do once they approve; don't say it's done.\n\n" +
       `Context: ${JSON.stringify(context)}`,
     user: message,
     schema: {

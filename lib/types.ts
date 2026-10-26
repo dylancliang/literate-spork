@@ -61,7 +61,7 @@ export interface AgentApi {
   classifyColumns(
     columns: { name: string; stats: ColumnStats }[]
   ): Promise<{ name: string; translate: boolean; reason: string }[]>;
-  translate(req: { lang: Lang; items: TranslateItem[]; instruction?: string }): Promise<{ id: string; text: string }[]>;
+  translate(req: { lang: Lang; items: TranslateItem[]; instruction?: string; signal?: AbortSignal }): Promise<{ id: string; text: string }[]>;
   routeFollowup(req: {
     message: string;
     languages: Lang[];

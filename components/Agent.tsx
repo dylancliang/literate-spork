@@ -7,17 +7,22 @@ import {
   buildOutput,
   chooseColumns,
   estimateCalls,
-  handleFollowup,
   loadFile,
+  planFollowup,
+  restoreJob,
+  runFollowup,
+  snapshotJob,
   translateLanguages,
   understandLanguages,
   type Ctx,
+  type FollowupPlan,
   type Job,
   type Output,
 } from "@/lib/pipeline";
+import { CancelledError, RunControl } from "@/lib/control";
 import type { ColumnDecision, Dataset, Lang, TraceEvent } from "@/lib/types";
 import TracePanel from "./TracePanel";
-import { PlanCard, ProgressCard, ResultCard } from "./Cards";
+import { ConfirmCard, PlanCard, ProgressCard, ResultCard } from "./Cards";
 
 type Stage = "start" | "plan" | "running" | "done";
 
@@ -26,7 +31,8 @@ export type Msg =
   | { id: string; role: "agent"; kind: "text"; text: string; tone?: "error" }
   | { id: string; role: "agent"; kind: "welcome" }
   | { id: string; role: "agent"; kind: "plan"; frozen?: { columns: string[]; languages: Lang[] } }
-  | { id: string; role: "agent"; kind: "progress"; label: string; done: number; total: number; finished: boolean; failed?: boolean }
+  | { id: string; role: "agent"; kind: "progress"; label: string; done: number; total: number; finished: boolean; failed?: boolean; cancelled?: boolean; paused?: boolean }
+  | { id: string; role: "agent"; kind: "confirm"; reply: string; summary: string; calls: number; status: "pending" | "approved" | "declined" }
   | { id: string; role: "agent"; kind: "result"; output: Output; languages: Lang[]; fileName: string; translated: string[]; first: boolean };
 
 type NewMsg = Msg extends infer M ? (M extends Msg ? Omit<M, "id"> & { id?: string } : never) : never;
@@ -48,6 +54,8 @@ export default function Agent() {
   const [file, setFile] = useState<File | null>(null);
   const [dragging, setDragging] = useState(false);
   const jobRef = useRef<Job | null>(null);
+  const controlRef = useRef<RunControl | null>(null);
+  const pendingRef = useRef<{ msgId: string; plan: Extract<FollowupPlan, { kind: "run" }> } | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -70,9 +78,11 @@ export default function Agent() {
   }, []);
   const say = useCallback((text: string, tone?: "error") => add({ role: "agent", kind: "text", text, tone }), [add]);
 
+  // Follow the newest message (not the message count): when the plan card moves to the bottom, the count stays the same.
+  const lastId = messages[messages.length - 1]?.id;
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages.length]);
+  }, [lastId]);
 
   // Auto-grow the text box.
   useEffect(() => {
@@ -93,6 +103,10 @@ export default function Agent() {
       text = text.trim();
       if ((!text && !attached) || busy || stage === "running") return;
       add({ role: "user", text, file: attached?.name });
+      if (pendingRef.current) {
+        patch(pendingRef.current.msgId, { status: "declined" } as Partial<Msg>);
+        pendingRef.current = null;
+      }
       setDraft("");
       setFile(null);
       setBusy(true);
@@ -175,49 +189,108 @@ export default function Agent() {
       total: estimateCalls(job),
       finished: false,
     });
+    const control = new RunControl();
+    controlRef.current = control;
     try {
-      await translateLanguages(ctx, job, langs, { onProgress: (done, total) => patch(pid, { done, total } as Partial<Msg>) });
+      await translateLanguages(ctx, job, langs, { onProgress: (done, total) => patch(pid, { done, total } as Partial<Msg>), control });
       patch(pid, { finished: true } as Partial<Msg>);
       const output = buildOutput(ctx, job);
       add({ role: "agent", kind: "result", output, languages: [...job.languages], fileName: dataset.fileName, translated: chosen.map((c) => c.name), first: true });
       setStage("done");
     } catch (e) {
-      patch(pid, { failed: true } as Partial<Msg>);
-      say(`Translation stopped: ${e instanceof Error ? e.message : String(e)}`, "error");
       jobRef.current = null;
+      if (e instanceof CancelledError) {
+        patch(pid, { cancelled: true } as Partial<Msg>);
+        say("Cancelled. Nothing was saved. Change the plan or start again when you're ready.");
+      } else {
+        patch(pid, { failed: true } as Partial<Msg>);
+        say(`Translation stopped: ${e instanceof Error ? e.message : String(e)}`, "error");
+      }
       showPlan(); // bring back an editable plan so the user can try again
+    } finally {
+      controlRef.current = null;
     }
   }, [dataset, columns, langs, ctx, add, patch, say, showPlan]);
 
+  // Follow-ups: understand first; anything that spends AI calls waits for the user's go-ahead.
   const followUp = async (text: string) => {
     const job = jobRef.current!;
+    const plan = await planFollowup(ctx, job, text);
+    if (plan.kind === "answer") {
+      say(plan.reply);
+      return;
+    }
+    const msgId = add({ role: "agent", kind: "confirm", reply: plan.reply, summary: plan.summary, calls: plan.calls, status: "pending" });
+    pendingRef.current = { msgId, plan };
+  };
+
+  const confirmFollowup = async (go: boolean) => {
+    const pending = pendingRef.current;
+    const job = jobRef.current;
+    if (!pending || !job) return;
+    pendingRef.current = null;
+    patch(pending.msgId, { status: go ? "approved" : "declined" } as Partial<Msg>);
+    ctx.trace({ step: "approve", actor: "user", title: `${go ? "You approved" : "You declined"}: ${pending.plan.summary}`, status: "ok" });
+    if (!go) {
+      say("OK, nothing changed.");
+      return;
+    }
     setStage("running");
+    const snap = snapshotJob(job);
+    const control = new RunControl();
+    controlRef.current = control;
     let pid: string | null = null;
     try {
-      const r = await handleFollowup(ctx, job, text, (done, total) => {
-        if (!pid) pid = add({ role: "agent", kind: "progress", label: "Updating translations", done, total, finished: false });
-        else patch(pid, { done, total } as Partial<Msg>);
-      });
+      await runFollowup(
+        ctx,
+        job,
+        pending.plan,
+        (done, total) => {
+          if (!pid) pid = add({ role: "agent", kind: "progress", label: pending.plan.summary, done, total, finished: false });
+          else patch(pid, { done, total } as Partial<Msg>);
+        },
+        control
+      );
       if (pid) patch(pid, { finished: true } as Partial<Msg>);
-      if (r.reply) say(r.reply);
-      if (r.changed) {
-        const output = buildOutput(ctx, job);
-        setLangs([...job.languages]);
-        add({
-          role: "agent",
-          kind: "result",
-          output,
-          languages: [...job.languages],
-          fileName: job.ds.fileName,
-          translated: job.columns.filter((c) => c.translate).map((c) => c.name),
-          first: false,
-        });
-      }
+      const output = buildOutput(ctx, job);
+      setLangs([...job.languages]);
+      add({
+        role: "agent",
+        kind: "result",
+        output,
+        languages: [...job.languages],
+        fileName: job.ds.fileName,
+        translated: job.columns.filter((c) => c.translate).map((c) => c.name),
+        first: false,
+      });
     } catch (e) {
-      say(e instanceof Error ? e.message : String(e), "error");
+      restoreJob(job, snap); // leave the previous result exactly as it was
+      if (e instanceof CancelledError) {
+        if (pid) patch(pid, { cancelled: true } as Partial<Msg>);
+        say("Cancelled. Your previous result is unchanged.");
+      } else {
+        if (pid) patch(pid, { failed: true } as Partial<Msg>);
+        say(`That didn't work: ${e instanceof Error ? e.message : String(e)}. Your previous result is unchanged.`, "error");
+      }
     } finally {
+      controlRef.current = null;
       setStage("done");
     }
+  };
+
+  const pauseRun = (pid: string) => {
+    controlRef.current?.pause();
+    patch(pid, { paused: true } as Partial<Msg>);
+    ctx.trace({ step: "pause", actor: "user", title: "You paused the run", detail: "No new batches start; batches already sent finish.", status: "ok" });
+  };
+  const resumeRun = (pid: string) => {
+    controlRef.current?.resume();
+    patch(pid, { paused: false } as Partial<Msg>);
+    ctx.trace({ step: "resume", actor: "user", title: "You resumed the run", status: "ok" });
+  };
+  const cancelRun = () => {
+    controlRef.current?.cancel();
+    ctx.trace({ step: "cancel", actor: "user", title: "You cancelled the run", status: "ok" });
   };
 
   const useSample = async () => {
@@ -310,7 +383,30 @@ export default function Agent() {
                           />
                         )
                       ))}
-                    {m.kind === "progress" && <ProgressCard label={m.label} done={m.done} total={m.total} finished={m.finished} failed={m.failed} />}
+                    {m.kind === "progress" && (
+                      <ProgressCard
+                        label={m.label}
+                        done={m.done}
+                        total={m.total}
+                        finished={m.finished}
+                        failed={m.failed}
+                        cancelled={m.cancelled}
+                        paused={m.paused}
+                        onPause={() => pauseRun(m.id)}
+                        onResume={() => resumeRun(m.id)}
+                        onCancel={cancelRun}
+                      />
+                    )}
+                    {m.kind === "confirm" && (
+                      <ConfirmCard
+                        reply={m.reply}
+                        summary={m.summary}
+                        calls={m.calls}
+                        status={m.status}
+                        onGo={() => confirmFollowup(true)}
+                        onDecline={() => confirmFollowup(false)}
+                      />
+                    )}
                     {m.kind === "result" && (
                       <ResultCard output={m.output} languages={m.languages} fileName={m.fileName} translated={m.translated} first={m.first} />
                     )}

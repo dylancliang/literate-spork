@@ -23,7 +23,7 @@ export function PlanCard(props: {
     const cells = dataset.rows.reduce((n, r) => n + chosen.filter((c) => r[c.index].trim()).length, 0);
     return { units: job.units.length, calls: estimateCalls(job), cells };
   }, [dataset, columns, languages, chosen]);
-  const seconds = Math.max(10, Math.ceil(calls / 4) * 12);
+  const seconds = Math.max(10, Math.ceil(calls / 6) * 20);
 
   return (
     <div className="card">
@@ -94,25 +94,94 @@ export function PlanCard(props: {
   );
 }
 
-export function ProgressCard({ label, done, total, finished, failed }: { label: string; done: number; total: number; finished: boolean; failed?: boolean }) {
+export function ProgressCard(props: {
+  label: string;
+  done: number;
+  total: number;
+  finished: boolean;
+  failed?: boolean;
+  cancelled?: boolean;
+  paused?: boolean;
+  onPause: () => void;
+  onResume: () => void;
+  onCancel: () => void;
+}) {
+  const { label, done, total, finished, failed, cancelled, paused } = props;
   const pct = total ? Math.round((done / total) * 100) : 0;
-  if (failed)
+  if (failed || cancelled)
     return (
       <div className="card progress" role="status">
         <div className="label">
           <span>{label}</span>
-          <span>Stopped</span>
+          <span>{cancelled ? "Cancelled" : "Stopped"}</span>
         </div>
       </div>
     );
+  const status = finished
+    ? "Checked and done"
+    : paused
+      ? `Paused at ${done} of ${total} batches`
+      : done >= total && total > 0
+        ? "Checking…"
+        : `${done} of ${total} batches`;
   return (
     <div className="card progress" role="status">
       <div className="label tabnum">
         <span>{finished ? label.replace(/^Translating/, "Translated") : label}</span>
-        <span>{finished ? "Checked and done" : done >= total && total > 0 ? "Checking…" : `${done} of ${total} batches`}</span>
+        <span>{status}</span>
       </div>
-      <div className="bar" aria-hidden="true">
+      <div className={`bar${paused ? " paused" : ""}`} aria-hidden="true">
         <span style={{ width: `${finished ? 100 : pct}%` }} />
+      </div>
+      {!finished && (
+        <div className="run-controls">
+          {paused ? (
+            <button className="btn" onClick={props.onResume}>
+              Resume
+            </button>
+          ) : (
+            <button className="btn" onClick={props.onPause}>
+              Pause
+            </button>
+          )}
+          <button className="btn" onClick={props.onCancel}>
+            Cancel
+          </button>
+          {paused && <span className="hint">Batches already sent will finish; nothing new starts until you resume.</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function ConfirmCard(props: {
+  reply: string;
+  summary: string;
+  calls: number;
+  status: "pending" | "approved" | "declined";
+  onGo: () => void;
+  onDecline: () => void;
+}) {
+  if (props.status !== "pending")
+    return (
+      <div className="frozen">
+        {props.status === "approved" ? "Approved" : "Not run"}: {props.summary}.
+      </div>
+    );
+  return (
+    <div className="card">
+      {props.reply && <p className="sub" style={{ marginBottom: 8 }}>{props.reply}</p>}
+      <h2>{props.summary}</h2>
+      <p className="hint tabnum" style={{ margin: "4px 0 0" }}>
+        {props.calls} AI call{props.calls === 1 ? "" : "s"}. Nothing changes until you choose.
+      </p>
+      <div className="btn-row">
+        <button className="btn primary" onClick={props.onGo}>
+          Go ahead
+        </button>
+        <button className="btn" onClick={props.onDecline}>
+          Not now
+        </button>
       </div>
     </div>
   );

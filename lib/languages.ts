@@ -15,6 +15,10 @@ const KNOWN: { code: string; name: string; aliases: string[] }[] = [
   { code: "th", name: "Thai", aliases: ["thai", "泰语", "ไทย"] },
   { code: "vi", name: "Vietnamese", aliases: ["vietnamese", "越南语", "tiếng việt"] },
   { code: "id", name: "Indonesian", aliases: ["indonesian", "印尼语", "bahasa indonesia"] },
+  { code: "pl", name: "Polish", aliases: ["polish", "波兰语", "polski"] },
+  { code: "nl", name: "Dutch", aliases: ["dutch", "荷兰语", "nederlands"] },
+  { code: "tr", name: "Turkish", aliases: ["turkish", "土耳其语", "türkçe"] },
+  { code: "ar", name: "Arabic", aliases: ["arabic", "阿拉伯语", "العربية"] },
   { code: "zh-Hant", name: "Traditional Chinese", aliases: ["traditional chinese", "繁体中文", "繁體中文", "繁体", "繁體", "zh-tw", "zh-hant"] },
 ];
 
