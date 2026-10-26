@@ -1,4 +1,4 @@
-import { assert, callTool, FAST_MODEL, handler } from "@/lib/server/llm";
+import { assert, callJson, FAST_MODEL, handler } from "@/lib/server/llm";
 import type { Lang } from "@/lib/types";
 import { isMock } from "@/lib/server/mock";
 
@@ -9,15 +9,13 @@ export const POST = handler<{ text: string }, { languages: Lang[] }>(async ({ te
 
   if (isMock()) return { languages: /brazil/i.test(text) ? [{ code: "pt-BR", name: "Brazilian Portuguese" }] : [] };
 
-  const out = await callTool<{ languages: Lang[] }>({
+  const out = await callJson<{ languages: Lang[] }>({
     model: FAST_MODEL,
     system:
       "The user is asking an app to translate a Chinese CSV file. Extract the TARGET languages they want, in the order mentioned. " +
       "Return BCP-47 codes (e.g. en, de, ja, pt-BR, zh-Hant) and English names. " +
       "If the message names no target language, return an empty list. Never include Simplified Chinese (the source) unless they clearly ask for it.",
     user: text,
-    toolName: "set_target_languages",
-    toolDescription: "Record the target languages the user asked for.",
     schema: {
       properties: {
         languages: {

@@ -1,4 +1,4 @@
-import { assert, callTool, FAST_MODEL, handler } from "@/lib/server/llm";
+import { assert, callJson, FAST_MODEL, handler } from "@/lib/server/llm";
 import type { FollowupAction, Lang } from "@/lib/types";
 import { isMock, mockFollowup } from "@/lib/server/mock";
 
@@ -22,7 +22,7 @@ export const POST = handler<Body, FollowupAction>(async ({ message, languages, c
     data_rows: rowCount,
   };
 
-  const out = await callTool<{ action: FollowupAction["action"]; languages?: Lang[]; instruction?: string; rows?: number[]; reply: string }>({
+  const out = await callJson<{ action: FollowupAction["action"]; languages?: Lang[]; instruction?: string; rows?: number[]; reply: string }>({
     model: FAST_MODEL,
     system:
       "You are the assistant inside a CSV translation app. A Chinese CSV has already been translated. The user sent a follow-up. Decide what to do:\n" +
@@ -34,8 +34,6 @@ export const POST = handler<Body, FollowupAction>(async ({ message, languages, c
       "Always write `reply`: one or two friendly sentences for the user, in the language they wrote in.\n\n" +
       `Context: ${JSON.stringify(context)}`,
     user: message,
-    toolName: "decide_followup",
-    toolDescription: "Choose the action for the user's follow-up message.",
     schema: {
       properties: {
         action: { type: "string", enum: ["add_languages", "retranslate", "answer"] },

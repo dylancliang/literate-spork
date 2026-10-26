@@ -21,15 +21,14 @@ export class HttpError extends Error {
 }
 
 /**
- * Ask the model to answer by "calling" a tool whose input schema is our output format.
- * Forcing the tool gives us structured JSON every time instead of parsing free text.
+ * Ask the model for JSON that must match a schema (the API's structured outputs feature),
+ * so we never parse free text. Every object in the schema is made strict: all fields required,
+ * no extra fields allowed.
  */
-export async function callTool<T>(opts: {
+export async function callJson<T>(opts: {
   model: string;
   system: string;
   user: string;
-  toolName: string;
-  toolDescription: string;
   schema: Record<string, unknown>;
   maxTokens?: number;
 }): Promise<T> {
@@ -38,12 +37,44 @@ export async function callTool<T>(opts: {
     max_tokens: opts.maxTokens ?? 2048,
     system: opts.system,
     messages: [{ role: "user", content: opts.user }],
-    tools: [{ name: opts.toolName, description: opts.toolDescription, input_schema: { type: "object", ...opts.schema } }],
-    tool_choice: { type: "tool", name: opts.toolName },
+    output_config: { format: { type: "json_schema", schema: strict({ type: "object", ...opts.schema }) as Record<string, unknown> } },
   });
-  const block = res.content.find((b) => b.type === "tool_use");
-  if (!block || block.type !== "tool_use") throw new HttpError(502, "The model did not return structured output.");
-  return block.input as T;
+  if (res.stop_reason === "max_tokens") throw new HttpError(502, "The model's answer was cut off (too long). Try a smaller batch.");
+  const text = res.content
+    .filter((b) => b.type === "text")
+    .map((b) => (b.type === "text" ? b.text : ""))
+    .join("");
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    // Defensive: take the outermost JSON object if anything surrounds it.
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    if (start >= 0 && end > start) {
+      try {
+        return JSON.parse(text.slice(start, end + 1)) as T;
+      } catch {
+        /* fall through */
+      }
+    }
+    throw new HttpError(502, "The model did not return valid JSON.");
+  }
+}
+
+function strict(schema: unknown): unknown {
+  if (Array.isArray(schema)) return schema.map(strict);
+  if (!schema || typeof schema !== "object") return schema;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(schema)) out[k] = k === "properties" ? mapValues(v as Record<string, unknown>, strict) : strict(v);
+  if (out.type === "object" && out.properties) {
+    out.additionalProperties = false;
+    out.required = Object.keys(out.properties as object);
+  }
+  return out;
+}
+
+function mapValues(o: Record<string, unknown>, f: (v: unknown) => unknown) {
+  return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, f(v)]));
 }
 
 /** Wraps a route handler with JSON parsing and readable errors. */

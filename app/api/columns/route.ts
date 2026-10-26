@@ -1,4 +1,4 @@
-import { assert, callTool, FAST_MODEL, handler } from "@/lib/server/llm";
+import { assert, callJson, FAST_MODEL, handler } from "@/lib/server/llm";
 import type { ColumnStats } from "@/lib/types";
 import { isMock, mockColumns } from "@/lib/server/mock";
 
@@ -20,7 +20,7 @@ export const POST = handler<Body, { verdicts: Verdict[] }>(async ({ columns }) =
     samples: c.stats.samples.slice(0, 8).map((s) => s.slice(0, 120)),
   }));
 
-  const out = await callTool<{ verdicts: Verdict[] }>({
+  const out = await callJson<{ verdicts: Verdict[] }>({
     model: FAST_MODEL,
     system:
       "You help localize a game's data table from Chinese. For each column, decide whether its values are human-readable text that players see " +
@@ -28,8 +28,6 @@ export const POST = handler<Body, { verdicts: Verdict[] }>(async ({ columns }) =
       "Translating a key or ID breaks the game, so when unsure about a key-like column, choose not to translate. " +
       "Give a short plain-English reason (under 15 words) a non-engineer would understand.",
     user: JSON.stringify(described, null, 1),
-    toolName: "record_column_decisions",
-    toolDescription: "Record a translate / don't-translate decision for every column.",
     schema: {
       properties: {
         verdicts: {

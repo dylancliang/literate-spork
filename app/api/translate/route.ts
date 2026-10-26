@@ -1,4 +1,4 @@
-import { assert, callTool, handler, TRANSLATE_MODEL } from "@/lib/server/llm";
+import { assert, callJson, handler, TRANSLATE_MODEL } from "@/lib/server/llm";
 import type { Lang, TranslateItem } from "@/lib/types";
 import { isMock, mockTranslate } from "@/lib/server/mock";
 
@@ -40,12 +40,10 @@ export const POST = handler<Body, { translations: { id: string; text: string }[]
     1
   )}`;
 
-  const out = await callTool<{ translations: { id: string; text: string }[] }>({
+  const out = await callJson<{ translations: { id: string; text: string }[] }>({
     model: TRANSLATE_MODEL,
     system,
     user,
-    toolName: "submit_translations",
-    toolDescription: "Submit one translation per input id.",
     maxTokens: 8000,
     schema: {
       properties: {
