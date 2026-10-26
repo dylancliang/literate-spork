@@ -26,7 +26,41 @@ export default function HowItWorks() {
         <Link href="/">Try the agent</Link>. The sample file is a 100-row game item table, built to include the cases that trip translation up.
       </p>
 
-      <h2>Product management approach</h2>
+      <nav className="toc" aria-label="On this page">
+        <h2>On this page</h2>
+        <ul>
+          <li>
+            <a href="#approach">Product management approach</a>
+          </li>
+          <li>
+            <span className="toc-links">
+              <a href="#design">The design in one sentence</a> and <a href="#who">Who does what</a>
+            </span>
+            <span className="toc-note">Agent capability decomposition</span>
+          </li>
+          <li>
+            <a href="#decisions">Key decisions</a>
+            <span className="toc-note">Implementation trade-offs</span>
+          </li>
+          <li>
+            <a href="#journey">Interaction design</a>
+            <span className="toc-note">Interaction design</span>
+          </li>
+          <li>
+            <a href="#stack">Technology stack</a>
+            <span className="toc-note">Technology stack selection</span>
+          </li>
+          <li>
+            <a href="#metrics">How I'd know it works</a>
+          </li>
+          <li>
+            <a href="#findings">Findings and Areas for Improvement</a>
+            <span className="toc-note">Areas that could be further optimized</span>
+          </li>
+        </ul>
+      </nav>
+
+      <h2 id="approach">Product management approach</h2>
       <p>I treated this like any product problem, compressed into the time box. Each step below links to where it shows up on this page.</p>
       <ol>
         <li>
@@ -60,7 +94,7 @@ export default function HowItWorks() {
         </li>
       </ol>
 
-      <h2>The design in one sentence</h2>
+      <h2 id="design">The design in one sentence</h2>
       <p>
         A fixed workflow with the AI used only where judgment is needed, and plain code everywhere a result can be checked. It is not a free-roaming
         agent that chooses its own next step: for a batch job on a data file, predictable and checkable beats clever.
@@ -78,7 +112,7 @@ export default function HowItWorks() {
         <span className="badge user">You</span> approval. The same colors mark every step in the agent's live trace panel.
       </p>
 
-      <h2>Who does what</h2>
+      <h2 id="who">Who does what</h2>
       <p>Each step in technical terms, with a plain-language version alongside.</p>
       <div className="table-scroll">
         <table className="doc-table">
@@ -278,7 +312,7 @@ export default function HowItWorks() {
         <li>A batch fails: retried twice; anything still missing is repaired or flagged, and the rest of the file is still delivered.</li>
       </ul>
 
-      <h2>Technology stack</h2>
+      <h2 id="stack">Technology stack</h2>
       <div className="table-scroll">
         <table className="doc-table">
           <thead>
