@@ -1,0 +1,101 @@
+﻿id,item_key,名称,类型,稀有度,描述,价格,上架日期,icon,dev_note
+1001,acc_thunder_001,雷霆项链,饰品,普通,暴击伤害提高{0}%。,880,2026-10-28,icons/acc_thunder_001.png,
+1002,arm_fire_002,火焰护甲,防具,普通,受到致命伤害时，保留1点生命值。\n每场战斗限触发一次。,5000,2026-09-17,icons/arm_fire_002.png,
+1003,wpn_shadow_003,暗影匕首,武器,普通,攻击力提升{0}点，暴击率提高{1}%。,300,2026-06-12,icons/wpn_shadow_003.png,localize before launch
+1004,arm_holy_004,圣光盾牌,防具,史诗,受到的神圣伤害降低{0}%。,5000,2026-07-17,icons/arm_holy_004.png,
+1005,arm_dragon_005,龙鳞护甲,防具,稀有,,2500,2026-10-15,icons/arm_dragon_005.png,TODO: confirm with design
+1006,acc_star_006,星辰护符,饰品,稀有,星光抗性提高{0}%，闪避率提高{1}%。,300,2026-06-21,icons/acc_star_006.png,
+1007,acc_bloodmoon_007,血月项链,饰品,普通,<color=#FFD700>套装效果</color>：全属性提升{0}%。,50,2026-10-10,icons/acc_bloodmoon_007.png,TODO: confirm with design
+1008,arm_dragon_008,龙鳞头盔,防具,普通,,5000,2026-10-25,icons/arm_dragon_008.png,reuse from event 3
+1009,acc_dragon_009,龙鳞护符,饰品,普通,龙炎抗性提高{0}%，闪避率提高{1}%。,50,2026-08-09,icons/acc_dragon_009.png,
+1010,wpn_fire_010,火焰法杖,武器,史诗,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,0,2026-09-27,icons/wpn_fire_010.png,reuse from event 3
+1011,arm_jade_011,VIP月卡,防具,史诗,购买后30天内每日领取钻石x{0}，VIP经验+{1}。,120,2026-08-03,icons/arm_jade_011.png,TODO: confirm with design
+1012,con_star_012,星辰药水,消耗品,史诗,使用后获得经验值x{0}。,120,2026-09-19,icons/con_star_012.png,localize before launch
+1013,acc_storm_013,风暴项链,饰品,稀有,风抗性提高{0}%，闪避率提高{1}%。,120,2026-07-30,icons/acc_storm_013.png,balance pass v2
+1014,wpn_star_014,星辰匕首,武器,稀有,对目标造成{0}点星光伤害，并有{1}%几率使其麻痹。,1200,2026-10-15,icons/wpn_star_014.png,reuse from event 3
+1015,acc_thunder_015,雷霆护符,饰品,传说,暴击伤害提高{0}%。,1200,2026-09-11,icons/acc_thunder_015.png,TODO: confirm with design
+1016,wpn_star_016,星辰战斧,武器,稀有,攻击力提升{0}点，暴击率提高{1}%。,2500,2026-07-12,icons/wpn_star_016.png,
+1017,acc_jade_017,翡翠戒指,饰品,普通,暴击伤害提高{0}%。,880,2026-06-07,icons/acc_jade_017.png,
+1018,arm_jade_018,翡翠盾牌,防具,史诗,受到的自然伤害降低{0}%。,880,2026-09-30,icons/arm_jade_018.png,
+1019,con_star_019,星辰卷轴,消耗品,史诗,立即恢复{0}点生命值。,500,2026-10-01,icons/con_star_019.png,
+1020,wpn_bloodmoon_020,血月法杖,武器,史诗,攻击力提升{0}点，暴击率提高{1}%。,120,2026-08-31,icons/wpn_bloodmoon_020.png,balance pass v2
+1021,acc_shadow_021,S级强化石,饰品,稀有,每回合恢复{0}点生命值。,300,2026-10-11,icons/acc_shadow_021.png,
+1022,acc_fire_022,火焰戒指,饰品,史诗,<color=#FFD700>套装效果</color>：全属性提升{0}%。,2500,2026-08-29,icons/acc_fire_022.png,reuse from event 3
+1023,wpn_shadow_023,暗影剑,武器,稀有,对目标造成{0}点暗影伤害，并有{1}%几率使其沉默。,2500,2026-06-01,icons/wpn_shadow_023.png,
+1024,acc_ice_024,寒冰护符,饰品,稀有,暴击伤害提高{0}%。,2500,2026-07-16,icons/acc_ice_024.png,TODO: confirm with design
+1025,wpn_thunder_025,雷霆长弓,武器,传说,对目标造成{0}点雷电伤害，并有{1}%几率使其灼烧。,120,2026-09-30,icons/wpn_thunder_025.png,reuse from event 3
+1026,arm_bloodmoon_026,血月头盔,防具,普通,防御力提升{0}点。,5000,2026-07-06,icons/arm_bloodmoon_026.png,TODO: confirm with design
+1027,arm_shadow_027,暗影护甲,防具,稀有,生命值上限提高{0}点，持续{1}回合。,880,2026-08-06,icons/arm_shadow_027.png,localize before launch
+1028,con_thunder_028,雷霆药水,消耗品,传说,<color=gold>限时</color>赠送，内含金币x{0}。,5000,2026-07-04,icons/con_thunder_028.png,localize before launch
+1029,arm_bloodmoon_029,血月护甲,防具,稀有,受到致命伤害时，保留1点生命值。\n每场战斗限触发一次。,120,2026-07-07,icons/arm_bloodmoon_029.png,
+1030,wpn_bloodmoon_030,血月剑,武器,传说,装备后普通攻击附带流血效果，持续{0}回合。,50,2026-10-22,icons/wpn_bloodmoon_030.png,
+1031,arm_shadow_031,暗影战靴,防具,普通,防御力提升{0}点。,50,2026-09-22,icons/arm_shadow_031.png,reuse from event 3
+1032,con_bloodmoon_032,血月药水,消耗品,稀有,<color=gold>限时</color>赠送，内含金币x{0}。,2500,2026-07-06,icons/con_bloodmoon_032.png,TODO: confirm with design
+1033,wpn_storm_033,风暴战斧,武器,传说,装备后普通攻击附带风效果，持续{0}回合。,50,2026-07-25,icons/wpn_storm_033.png,check icon size
+1034,wpn_thunder_034,雷霆法杖,武器,传说,对目标造成{0}点雷电伤害，并有{1}%几率使其麻痹。,300,2026-06-25,icons/wpn_thunder_034.png,TODO: confirm with design
+1035,con_thunder_035,雷霆礼包,消耗品,传说,使用后获得经验值x{0}。,880,2026-09-16,icons/con_thunder_035.png,balance pass v2
+1036,acc_dragon_036,龙鳞戒指,饰品,传说,<color=#FFD700>套装效果</color>：全属性提升{0}%。,2500,2026-06-05,icons/acc_dragon_036.png,TODO: confirm with design
+1037,acc_bloodmoon_037,血月护符,饰品,普通,<color=#FFD700>套装效果</color>：全属性提升{0}%。,300,2026-06-27,icons/acc_bloodmoon_037.png,
+1038,acc_holy_038,圣光戒指,饰品,传说,每回合恢复{0}点生命值。,500,2026-09-12,icons/acc_holy_038.png,
+1039,con_dragon_039,龙鳞药水,消耗品,稀有,<color=gold>限时</color>赠送，内含金币x{0}。,1200,2026-06-19,icons/con_dragon_039.png,check icon size
+1040,wpn_ice_040,寒冰法杖,武器,普通,攻击力提升{0}点，暴击率提高{1}%。,500,2026-07-02,icons/wpn_ice_040.png,
+1041,wpn_dragon_041,龙鳞匕首,武器,普通,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,5000,2026-08-01,icons/wpn_dragon_041.png,
+1042,arm_holy_042,圣光护甲,防具,史诗,受到的神圣伤害降低{0}%。,5000,2026-07-23,icons/arm_holy_042.png,check icon size
+1043,con_bloodmoon_043,血月礼包,消耗品,普通,使用后获得经验值x{0}。,500,2026-06-10,icons/con_bloodmoon_043.png,
+1044,wpn_bloodmoon_044,血月匕首,武器,传说,对目标造成{0}点流血伤害，并有{1}%几率使其中毒。,50,2026-09-19,icons/wpn_bloodmoon_044.png,
+1045,con_bloodmoon_045,血月卷轴,消耗品,稀有,使用后获得经验值x{0}。,1200,2026-08-28,icons/con_bloodmoon_045.png,
+1046,acc_storm_046,风暴戒指,饰品,传说,暴击伤害提高{0}%。,5000,2026-08-12,icons/acc_storm_046.png,
+1047,acc_star_047,星辰戒指,饰品,史诗,<color=#FFD700>套装效果</color>：全属性提升{0}%。,300,2026-06-09,icons/acc_star_047.png,check icon size
+1048,wpn_dragon_048,龙鳞战斧,武器,稀有,攻击力提升{0}点，暴击率提高{1}%。,300,2026-10-08,icons/wpn_dragon_048.png,
+1049,wpn_holy_049,圣光剑,武器,传说,对目标造成{0}点神圣伤害，并有{1}%几率使其沉默。,0,2026-08-16,icons/wpn_holy_049.png,check icon size
+1050,arm_ice_050,寒冰头盔,防具,传说,受到致命伤害时，保留1点生命值。\n每场战斗限触发一次。,120,2026-08-12,icons/arm_ice_050.png,
+1051,arm_fire_051,火焰盾牌,防具,普通,受到的火焰伤害降低{0}%。,300,2026-06-22,icons/arm_fire_051.png,
+1052,wpn_fire_052,火焰匕首,武器,传说,对目标造成{0}点火焰伤害，并有{1}%几率使其沉默。,50,2026-10-07,icons/wpn_fire_052.png,localize before launch
+1053,con_holy_053,圣光药水,消耗品,稀有,<color=gold>限时</color>赠送，内含金币x{0}。,300,2026-09-26,icons/con_holy_053.png,
+1054,con_ice_054,寒冰卷轴,消耗品,稀有,<color=gold>限时</color>赠送，内含金币x{0}。,50,2026-07-08,icons/con_ice_054.png,reuse from event 3
+1055,acc_holy_055,圣光护符,饰品,传说,每回合恢复{0}点生命值。,500,2026-06-26,icons/acc_holy_055.png,balance pass v2
+1056,con_holy_056,圣光礼包,消耗品,普通,<color=gold>限时</color>赠送，内含金币x{0}。,5000,2026-07-22,icons/con_holy_056.png,check icon size
+1057,wpn_star_057,星辰剑,武器,传说,装备后普通攻击附带星光效果，持续{0}回合。,500,2026-09-08,icons/wpn_star_057.png,balance pass v2
+1058,arm_ice_058,寒冰护甲,防具,史诗,受到的冰霜伤害降低{0}%。,120,2026-10-09,icons/arm_ice_058.png,check icon size
+1059,wpn_dragon_059,龙鳞长弓,武器,稀有,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,0,2026-10-04,icons/wpn_dragon_059.png,
+1060,arm_storm_060,风暴战靴,防具,史诗,受到致命伤害时，保留1点生命值。\n每场战斗限触发一次。,0,2026-08-23,icons/arm_storm_060.png,reuse from event 3
+1061,con_ice_061,寒冰药水,消耗品,史诗,立即恢复{0}点生命值。,50,2026-09-09,icons/con_ice_061.png,TODO: confirm with design
+1062,acc_fire_062,火焰项链,饰品,史诗,暴击伤害提高{0}%。,120,2026-08-03,icons/acc_fire_062.png,check icon size
+1063,arm_dragon_063,龙鳞盾牌,防具,稀有,防御力提升{0}点。,50,2026-06-13,icons/arm_dragon_063.png,TODO: confirm with design
+1064,con_jade_064,翡翠药水,消耗品,稀有,,120,2026-09-29,icons/con_jade_064.png,TODO: confirm with design
+1065,acc_holy_065,圣光项链,饰品,史诗,<color=#FFD700>套装效果</color>：全属性提升{0}%。,1200,2026-08-01,icons/acc_holy_065.png,check icon size
+1066,con_dragon_066,龙鳞卷轴,消耗品,稀有,使用后{1}秒内移动速度提升{0}%。,50,2026-07-15,icons/con_dragon_066.png,reuse from event 3
+1067,con_storm_067,风暴礼包,消耗品,普通,使用后获得经验值x{0}。,2500,2026-08-11,icons/con_storm_067.png,
+1068,arm_ice_068,寒冰战靴,防具,传说,受到的冰霜伤害降低{0}%。,1200,2026-08-19,icons/arm_ice_068.png,
+1069,con_jade_069,翡翠卷轴,消耗品,传说,立即恢复{0}点生命值。,2500,2026-08-03,icons/con_jade_069.png,
+1070,arm_thunder_070,雷霆头盔,防具,传说,防御力提升{0}点。,50,2026-10-20,icons/arm_thunder_070.png,
+1071,wpn_holy_071,圣光长弓,武器,普通,装备后普通攻击附带神圣效果，持续{0}回合。,50,2026-06-19,icons/wpn_holy_071.png,check icon size
+1072,con_holy_072,圣光卷轴,消耗品,稀有,使用后获得经验值x{0}。,0,2026-09-14,icons/con_holy_072.png,check icon size
+1073,wpn_fire_073,火焰长弓,武器,普通,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,500,2026-07-29,icons/wpn_fire_073.png,TODO: confirm with design
+1074,acc_shadow_074,暗影项链,饰品,传说,暴击伤害提高{0}%。,880,2026-09-10,icons/acc_shadow_074.png,balance pass v2
+1075,wpn_holy_075,圣光匕首,武器,稀有,攻击力提升{0}点，暴击率提高{1}%。,500,2026-07-20,icons/wpn_holy_075.png,balance pass v2
+1076,con_shadow_076,暗影卷轴,消耗品,传说,<color=gold>限时</color>赠送，内含金币x{0}。,120,2026-07-28,icons/con_shadow_076.png,
+1077,con_fire_077,火焰礼包,消耗品,普通,,120,2026-09-15,icons/con_fire_077.png,
+1078,wpn_thunder_078,雷霆战斧,武器,普通,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,50,2026-07-13,icons/wpn_thunder_078.png,reuse from event 3
+1079,arm_thunder_079,雷霆盾牌,防具,传说,防御力提升{0}点。,880,2026-08-24,icons/arm_thunder_079.png,
+1080,wpn_star_080,星辰长弓,武器,稀有,装备后普通攻击附带星光效果，持续{0}回合。,880,2026-09-02,icons/wpn_star_080.png,
+1081,wpn_storm_081,风暴长弓,武器,传说,<color=#FF4500>专属武器</color>：攻击力提升{0}%。,50,2026-06-16,icons/wpn_storm_081.png,check icon size
+1082,wpn_holy_082,圣光法杖,武器,普通,,0,2026-07-30,icons/wpn_holy_082.png,
+1083,arm_star_083,星辰头盔,防具,稀有,防御力提升{0}点。,300,2026-08-23,icons/arm_star_083.png,reuse from event 3
+1084,con_dragon_084,龙鳞礼包,消耗品,稀有,立即恢复{0}点生命值。,300,2026-09-13,icons/con_dragon_084.png,
+1085,con_star_085,星辰礼包,消耗品,传说,使用后{1}秒内移动速度提升{0}%。,2500,2026-07-31,icons/con_star_085.png,localize before launch
+1086,acc_jade_086,翡翠项链,饰品,稀有,<color=#FFD700>套装效果</color>：全属性提升{0}%。,2500,2026-08-03,icons/acc_jade_086.png,
+1087,arm_shadow_087,暗影头盔,防具,普通,生命值上限提高{0}点，持续{1}回合。,1200,2026-08-04,icons/arm_shadow_087.png,balance pass v2
+1088,arm_ice_088,寒冰盾牌,防具,稀有,,2500,2026-09-04,icons/arm_ice_088.png,
+1089,acc_shadow_089,暗影戒指,饰品,稀有,暴击伤害提高{0}%。,50,2026-09-04,icons/acc_shadow_089.png,localize before launch
+1090,arm_star_090,星辰战靴,防具,史诗,防御力提升{0}点。,300,2026-06-10,icons/arm_star_090.png,reuse from event 3
+1091,acc_thunder_091,雷霆戒指,饰品,稀有,,0,2026-08-23,icons/acc_thunder_091.png,TODO: confirm with design
+1092,acc_ice_092,寒冰戒指,饰品,普通,暴击伤害提高{0}%。,1200,2026-06-26,icons/acc_ice_092.png,TODO: confirm with design
+1093,con_storm_093,风暴药水,消耗品,传说,<color=gold>限时</color>赠送，内含金币x{0}。,300,2026-06-02,icons/con_storm_093.png,TODO: confirm with design
+1094,arm_storm_094,风暴护甲,防具,史诗,防御力提升{0}点。,2500,2026-07-12,icons/arm_storm_094.png,
+1095,acc_bloodmoon_095,血月戒指,饰品,稀有,每回合恢复{0}点生命值。,50,2026-06-28,icons/acc_bloodmoon_095.png,TODO: confirm with design
+1096,chr_1096,暗影刺客·夜,角色,传说,来自东方的神秘刺客，擅长在黑暗中一击必杀。,6480,2026-09-15,icons/chr_1096.png,
+1097,chr_1097,圣光骑士·莉娜,角色,传说,王国最年轻的骑士团长，誓死守护公主。\n被动：队友生命值低于{0}%时为其施加护盾。,6480,2026-09-15,icons/chr_1097.png,
+1098,chr_1098,雷霆法师·艾伦,角色,传说,掌控雷电之力的天才法师，攻击可连锁{0}个目标。,6480,2026-09-15,icons/chr_1098.png,
+1099,chr_1099,寒冰女王,角色,传说,,6480,2026-09-15,icons/chr_1099.png,
+1100,chr_1100,龙骑士·凯,角色,传说,与巨龙签订契约的战士，大招造成{0}点龙炎伤害。,6480,2026-09-15,icons/chr_1100.png,
