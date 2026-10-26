@@ -139,6 +139,41 @@ export default function HowItWorks() {
         </table>
       </div>
 
+      <h3>Example from a real run: a failed check and its repair</h3>
+      <p>
+        While adding Japanese, one string failed. In the agent's trace panel this shows up as two steps in a row: a code check that flags the problem,
+        then an AI repair of just that string. Selecting either step shows its details.
+      </p>
+      <ol className="flow three">
+        <li className="ai">
+          <b>Translate</b>
+          Lina's description, 王国最年轻的骑士团长……低于{"{0}"}%时为其施加护盾。 The first answer stopped early: 王国最年少の騎士団長。命を懸けて姫を守り抜く。\n패시브
+        </li>
+        <li className="code">
+          <b>Check</b>
+          "Checked 144 Japanese strings: 1 need a fix." Problem found: placeholder {"{0}"} missing.
+        </li>
+        <li className="ai">
+          <b>Repair</b>
+          "Re-translated 1 flagged Japanese string: 1 fixed." The string goes back with its first answer and the problem; the fix is kept only
+          if it passes the same checks.
+        </li>
+      </ol>
+      <p className="muted" style={{ fontSize: 14 }}>
+        What the checks missed: the first answer also slipped into Korean (패시브, "passive"). It was caught only because {"{0}"} was missing too, so a
+        wrong-script check is now on the improvement list.
+      </p>
+      <div className="shots">
+        <figure className="shot narrow">
+          <img src="/how-it-works/trace-check-repair.png" alt="Trace panel: the check step expanded, showing the Japanese string with {0} missing, followed by the repair step reporting 1 fixed" />
+          <figcaption>The trace panel: the check step (expanded) and the repair step right after it.</figcaption>
+        </figure>
+        <figure className="shot">
+          <img src="/how-it-works/result-japanese.png" alt="Result card after adding Japanese: 100 rows into English, German and Japanese, 0 rows to review" />
+          <figcaption>The result after adding Japanese: 0 rows left to review, because the repair passed.</figcaption>
+        </figure>
+      </div>
+
       <h2 id="decisions">Key decisions</h2>
       <p>The trade-offs that shaped the product, and when I'd revisit each one.</p>
 
@@ -362,8 +397,9 @@ export default function HowItWorks() {
           <span className="tech">Evaluation set of approved translations; AI reviewer scoring; track human edit rate.</span>
         </li>
         <li>
-          <b>Wider automatic checks.</b> Catch leftover Chinese separators such as "·".
-          <span className="tech">Add CJK separators to the punctuation check so the repair step fixes them.</span>
+          <b>Wider automatic checks.</b> Catch leftover Chinese separators such as "·", and text in the wrong script, like the Korean that slipped
+          into a Japanese answer.
+          <span className="tech">Add CJK separators to the punctuation check and a per-language script check, so the repair step fixes them.</span>
         </li>
         <li>
           <b>Fit the screen.</b> German runs about 30% longer than English; buttons and item names have limits.

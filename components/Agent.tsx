@@ -117,8 +117,11 @@ export default function Agent() {
         if (text) {
           const found = await understandLanguages(ctx, text);
           if (found.length) {
-            ls = found;
-            setLangs(found);
+            // A language typed on its own adds to the list; "only", "instead", "just" etc. replace it.
+            // A new file with a new request starts fresh.
+            const replace = attached || !langs.length || /\b(only|instead|just|replace|switch)\b|只|改成|换成|仅/i.test(text);
+            ls = replace ? found : [...langs, ...found.filter((f) => !langs.some((l) => l.code === f.code))];
+            setLangs(ls);
           } else if (!attached) {
             say(
               ds
