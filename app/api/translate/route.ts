@@ -44,7 +44,7 @@ export const POST = handler<Body, { translations: { id: string; text: string }[]
     model: TRANSLATE_MODEL,
     system,
     user,
-    maxTokens: 8000,
+    maxTokens: 16000,
     schema: {
       properties: {
         translations: {

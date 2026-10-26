@@ -8,9 +8,9 @@ import { checkTranslation } from "./validate";
 import type { AgentApi, ColumnDecision, Dataset, Lang, TraceEvent, TranslateItem, Unit } from "./types";
 
 export const MAX_ROWS = 2000;
-export const BATCH_ITEMS = 40;
-const BATCH_CHARS = 3500;
-const CONCURRENCY = 4;
+export const BATCH_ITEMS = 20;
+const BATCH_CHARS = 1800;
+const CONCURRENCY = 6;
 
 export type Ctx = {
   api: AgentApi;

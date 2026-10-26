@@ -20,10 +20,18 @@ export class HttpError extends Error {
   }
 }
 
+// Models that rejected the structured-output request once; later calls go straight to the fallback.
+const noStructuredOutput = new Set<string>();
+
 /**
- * Ask the model for JSON that must match a schema (the API's structured outputs feature),
- * so we never parse free text. Every object in the schema is made strict: all fields required,
- * no extra fields allowed.
+ * Ask the model for JSON matching a schema.
+ * First choice: the API's structured outputs (the response is guaranteed to match the schema).
+ * Fallback, if the model rejects that request: the same schema given as a plain instruction,
+ * with the answer parsed from text. Either way the caller gets an object, and our own
+ * validation checks every translation afterwards.
+ *
+ * max_tokens is generous because Sonnet 5.5 and Haiku 5.5 think by default, and thinking
+ * tokens count toward the limit.
  */
 export async function callJson<T>(opts: {
   model: string;
@@ -32,13 +40,28 @@ export async function callJson<T>(opts: {
   schema: Record<string, unknown>;
   maxTokens?: number;
 }): Promise<T> {
-  const res = await getClient().messages.create({
+  const schema = strict({ type: "object", ...opts.schema }) as Record<string, unknown>;
+  const base = {
     model: opts.model,
-    max_tokens: opts.maxTokens ?? 2048,
-    system: opts.system,
-    messages: [{ role: "user", content: opts.user }],
-    output_config: { format: { type: "json_schema", schema: strict({ type: "object", ...opts.schema }) as Record<string, unknown> } },
+    max_tokens: opts.maxTokens ?? 8000,
+    messages: [{ role: "user" as const, content: opts.user }],
+  };
+
+  let res: Anthropic.Message | undefined;
+  if (!noStructuredOutput.has(opts.model)) {
+    try {
+      res = await getClient().messages.create({ ...base, system: opts.system, output_config: { format: { type: "json_schema", schema } } });
+    } catch (e) {
+      if (!(e instanceof Anthropic.APIError && e.status === 400)) throw e;
+      console.warn(`Structured output rejected for ${opts.model}; using plain JSON instructions instead. ${e.message}`);
+      noStructuredOutput.add(opts.model);
+    }
+  }
+  res ??= await getClient().messages.create({
+    ...base,
+    system: `${opts.system}\n\nRespond with ONLY a JSON object that matches this JSON schema. No other text, no code fences.\n${JSON.stringify(schema)}`,
   });
+
   if (res.stop_reason === "max_tokens") throw new HttpError(502, "The model's answer was cut off (too long). Try a smaller batch.");
   const text = res.content
     .filter((b) => b.type === "text")
